@@ -25,9 +25,13 @@ class Activity(db.Model, SerializerMixin):
     difficulty = db.Column(db.Integer)
 
     # Add relationship
+
+    signups = db.relationship("Signup", back_populates="activity")
     
     # Add serialization rules
     
+    serialize_rules = ('-signups.activity',)
+
     def __repr__(self):
         return f'<Activity {self.id}: {self.name}>'
 
@@ -40,10 +44,28 @@ class Camper(db.Model, SerializerMixin):
     age = db.Column(db.Integer)
 
     # Add relationship
+    #NTS: THESE NEED TO BE PLURAL VERSION
+    signups = db.relationship("Signup", back_populates="camper")
     
-    # Add serialization rules
+    # Add serialization rules 
+
+    serialize_rules = ('-signups.camper', )
     
     # Add validation
+    #Dont RETURN ValueError --> RAISE it instead
+    @validates('name')
+    def validate_name(self, key, value):
+        if value:
+            return value
+        else:
+            raise ValueError(f"Must include a valid {value}.")
+        
+    @validates('age')
+    def validate_age(self, key, value):
+        if 8 <= value <= 18:
+            return value
+        else:
+            raise ValueError(f"{value} is not a valid age.")
     
     
     def __repr__(self):
@@ -57,10 +79,26 @@ class Signup(db.Model, SerializerMixin):
     time = db.Column(db.Integer)
 
     # Add relationships
-    
+    activity_id = db.Column(db.Integer, db.ForeignKey('activities.id'))
+    camper_id = db.Column(db.Integer, db.ForeignKey('campers.id'))
+
+    #ONE activity has MANY signups. ONE camper has MANY signups. (think singular and plural)
+    activity = db.relationship("Activity", back_populates="signups")
+    camper = db.relationship("Camper", back_populates="signups")
+
     # Add serialization rules
+
+    #NTS - ALWAYS NEED A HANGING COMMA AFTER THE FIRST OR SECOND RULE 
+    serialize_rules = ('-activity.signups', '-camper.signups',)
     
     # Add validation
+
+    @validates('time')
+    def validate_time(self, key, value):
+        if 0 <= value <= 23:
+            return value
+        else:
+            raise ValueError(f"{value} is not a valid time.")
     
     def __repr__(self):
         return f'<Signup {self.id}>'
